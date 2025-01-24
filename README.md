@@ -1,5 +1,5 @@
 # Google-Forms-Article-Quiz-APP
-This is the initial Specification as done by GPT Code Copilot
+This is the start of the Specification as done by GPT Code Copilot
 
 **1. Overview**
 The goal of this project is to integrate an AI chatbot with Google Forms to provide real-time feedback to users before submission. A new "Evaluate" button will be added near the "Submit" button. When clicked, the form responses will be sent to an AI model, which will analyze the answers and provide feedback in a popup window. Users can then modify their responses before final submission.
