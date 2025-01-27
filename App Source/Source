@@ -1,1 +1,111 @@
+/**
+ * Google Forms Quiz AI Feedback Add-on
+ * Revised Implementation (Updated AI Models & Requirements)
+ * Last modified 10/26/25    Time: 1738005720    
+ */
+
+function onFormSubmit(e) {
+  try {
+    const form = FormApp.getActiveForm();
+    const responses = e.response.getItemResponses();
+    const email = e.response.getRespondentEmail();
+    if (!email) throw new Error("No email address found.");
+
+    // Retrieve AI Model Selection (Hardcoded as per updated spec)
+    const AI_MODEL = "DeepSeek"; // Can be replaced with "Gemini", "ChatGPT", "Claude.ai"
+
+    let feedbackData = [];
+    responses.forEach(response => {
+      const question = response.getItem().getTitle();
+      const studentAnswer = response.getResponse();
+      const modelAnswer = getModelAnswer(response.getItem());
+      
+      if (!modelAnswer) return;
+
+      feedbackData.push({
+        question,
+        studentAnswer,
+        modelAnswer
+      });
+    });
+
+    if (feedbackData.length === 0) throw new Error("No model answers found.");
+
+    const aiFeedback = getAIComparison(feedbackData, AI_MODEL);
+    sendEmail(email, aiFeedback);
+    logFeedback(email, aiFeedback);
+
+  } catch (error) {
+    console.error("Error in onFormSubmit: ", error.message);
+  }
+}
+
+/**
+ * Retrieves model answer stored in the Correct Answer Feedback field.
+ */
+function getModelAnswer(item) {
+  if (item.getType() === FormApp.ItemType.TEXT) {
+    return item.asTextItem().getHelpText();
+  }
+  // Extend for other question types as needed
+  return null;
+}
+
+/**
+ * Calls the AI service to compare student and model answers.
+ */
+function getAIComparison(feedbackData, model) {
+  const payload = {
+    model: model,
+    prompt: generateAIPrompt(feedbackData),
+  };
+  
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+  };
+  
+  const response = UrlFetchApp.fetch("https://api.example.com/ai-evaluate", options); // Replace with actual API endpoint
+  return JSON.parse(response.getContentText());
+}
+
+/**
+ * Generates structured AI prompt.
+ */
+function generateAIPrompt(feedbackData) {
+  let prompt = "Compare each student answer with the model answer. Provide a score (1-10) and short feedback.\n";
+  feedbackData.forEach((data, index) => {
+    prompt += `Q${index + 1}:\nModel Answer: "${data.modelAnswer}"\nStudent Answer: "${data.studentAnswer}"\n`;
+  });
+  return prompt;
+}
+
+/**
+ * Sends AI-generated feedback via email.
+ */
+function sendEmail(email, feedback) {
+  const subject = "Your AI Feedback for Google Forms Quiz";
+  let body = "Hello,\n\nHere is your personalized feedback:\n\n";
+  feedback.forEach((entry, index) => {
+    body += `Q${index + 1}: Score: ${entry.score}/10\nAdvice: ${entry.feedback}\n\n`;
+  });
+  body += "Best regards,\nInstructor";
+  
+  MailApp.sendEmail(email, subject, body);
+}
+
+/**
+ * Logs AI feedback to the Google Sheet.
+ */
+function logFeedback(email, feedback) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("AI Feedback");
+  if (!sheet) return;
+  
+  const row = [new Date(), email];
+  feedback.forEach(entry => {
+    row.push(entry.score, entry.feedback);
+  });
+  sheet.appendRow(row);
+}
 
